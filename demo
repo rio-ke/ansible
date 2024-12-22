@@ -1,0 +1,4 @@
+for i in {1..10}; do
+  echo "Pinging nginx-web, attempt $i"
+  curl -I http://localhost:8080 
+done

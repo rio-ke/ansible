@@ -1,0 +1,51 @@
+---
+- name: Manage Docker containers and ensure Nginx is running
+  hosts: localhost  # Use localhost for local machine or a specific group
+  become: true      # Use sudo to install packages and manage services
+  gather_facts: no  # Skip gathering facts to speed up execution
+
+  tasks:
+    # Step 1: Ensure Docker container is running (nginx)
+    - name: Ensure Docker container is running (nginx)
+      docker_container:
+        name: my_container
+        image: nginx:latest
+        state: started  # This will start the container if it's stopped or create it if it doesn't exist
+        restart_policy: always
+        ports:
+          - 8080:80  # Expose port 80 on the container to port 8080 on the host
+
+    # Step 2: Create custom HTML page for Nginx
+    - name: Create custom HTML page for Nginx
+      copy:
+        dest: /var/www/html/index.html
+        content: |
+          <html>
+            <head>
+              <title>Welcome to Ansible-powered Nginx</title>
+            </head>
+            <body>
+              <h1>Hello from Ansible and Nginx!</h1>
+              <p>This page is served by Nginx configured using Ansible.</p>
+            </body>
+          </html>
+        mode: '0644'
+      delegate_to: localhost  # Copy this file to the host, not within the container
+
+    # Step 3: Stop and then start the container to apply changes
+    - name: Stop Nginx container to apply changes
+      docker_container:
+        name: my_container
+        state: stopped  # Stop the container to apply changes
+
+    - name: Start Nginx container to apply changes
+      docker_container:
+        name: my_container
+        state: started  # Restart the container after changes are applied
+        healthcheck:
+          test: ["CMD", "curl", "--fail", "http://localhost:80"]  # Use localhost to access Nginx inside the container
+          interval: 1m30s  # Perform health check every 1 minute 30 seconds
+          timeout: 10s      # Timeout after 10 seconds if the check doesn't succeed
+          retries: 3        # Retry the health check 3 times before marking the container as unhealthy
+          start_period: 30s  # Give the container 30 seconds to start before health checks begin
+          start_interval: 10s  # Wait 10 seconds before performing the first health check

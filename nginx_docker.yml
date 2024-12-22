@@ -1,0 +1,72 @@
+---
+- name: Deploy Nginx Docker Container
+  hosts: localhost
+  become: true
+  gather_facts: no
+
+  tasks:
+  - name: clreate docker_container
+    docker_container:
+      name: web-nginx
+      image: nginx:latest
+      state: started
+      ports:
+        - "8080:80"
+      restart: yes
+      restart_policy: unless-stopped
+      healthcheck:
+        test: ["CMD", "curl", "--fail", "http://localhost:8080"]
+        interval: 1m30s
+        timeout: 10s
+        retries: 3
+        start_period: 30s
+        start_interval: 10s
+
+  - name: Update the container batch
+    community.docker.docker_container_exec:
+      container: web-nginx
+      command: apt update
+  
+  - name: Install the vim editor tor nginx configuration
+    community.docker.docker_container_exec:
+      container: web-nginx
+      command: apt-get install -y vim
+      chdir: /root
+    register: result
+  
+  - name: print output
+    ansible.builtin.debug:
+      var: result.stdout_lines
+      
+  - name: Delete file
+    file:
+      path: /var/www/html/index.html
+      state: absent
+
+  - name: Create custom HTML page for Nginx
+    copy:
+      dest: /var/www/html/index.html
+      content: |
+        <html>
+          <head>
+            <title>Welcome to Ansible-powered Nginx</title>
+          </head>
+          <body>
+            <h1>Hello from Ansible and Nginx!</h1>
+            <p>This page is served by Nginx configured using Ansible.</p>
+          </body>
+        </html>
+      mode: '0644'
+    delegate_to: localhost
+  
+  # - name: Stop the container
+  #   docker_container:
+  #     name: web-nginx
+  #     state: stopped
+  # - name: start the container
+  #   docker_container:
+  #     name: web-nginx
+  #     state: started
+
+
+

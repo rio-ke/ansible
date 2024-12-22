@@ -1,0 +1,17 @@
+---
+- name: nginx server runing 
+  hosts: localhost
+  become: true
+  gather_facts: no
+
+
+  tasks:
+  - name: Stop a container
+    community.docker.docker_container:
+      name: web-nginx
+      state: stopped
+
+  - name: Remove the stopped container
+    community.docker.docker_container:
+      name: web-nginx
+      state: absent
